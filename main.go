@@ -1,9 +1,10 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"log"
 )
 
 func main() {
@@ -12,16 +13,30 @@ func main() {
 		log.Panic(err)
 	}
 
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "34.87.113.63"})
 	if err != nil {
 		panic(err)
 	}
 
+	// Delivery report handler for produced messages
+	go func() {
+		for e := range p.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					fmt.Printf("Delivery failed: %v\n", ev.TopicPartition)
+				} else {
+					fmt.Printf("Delivered message to %v\n", ev.TopicPartition)
+				}
+			}
+		}
+	}()
+
 	defer p.Close()
 
 	// Produce messages to topic (asynchronously)
-	topic := "myTopic"
-	
+	topic := "telegram"
+
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
