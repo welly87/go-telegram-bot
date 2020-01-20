@@ -1,11 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/welly87/go-telegram-bot/avro"
+
+	//avro "github.com/welly87/go-telegram-bot"
 	"log"
+	"time"
 )
+
+func makeTimestamp() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
+}
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI("997919151:AAGd-cGPlqq42GKDKD8YGjnpSaD40xjVF18")
@@ -51,14 +60,26 @@ func main() {
 
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
+		//update.Message.
+
 		// msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 		// msg.ReplyToMessageID = update.Message.MessageID
 
 		// bot.Send(msg)
 
+		msg := avro.NewTelegramMessage()
+		msg.Message = update.Message.Text
+		msg.ChatId = string(update.Message.Chat.ID)
+		msg.MessageId = string(update.Message.MessageID)
+		msg.Username = update.Message.From.UserName
+		msg.Viewtime = makeTimestamp()
+
+		var buf bytes.Buffer
+		msg.Serialize(&buf)
+
 		p.Produce(&kafka.Message{
 			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(update.Message.Text),
+			Value:          buf.Bytes(),
 		}, nil)
 	}
 }
